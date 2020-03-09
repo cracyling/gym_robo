@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format2.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="2">
+  <name>gym_robo</name>
+  <version>0.1.0</version>
+  <description>OpenAI Gym Robotics framework</description>
+  <author email="zhiee.poh@httechnology.com">Poh Zhi-Ee</author>
+  <maintainer email="zhiee.poh@httechnology.com">Poh Zhi-Ee</maintainer>
+  <license>Apache License 2.0</license>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
