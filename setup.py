@@ -12,7 +12,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
     ],
     package_data={'': ['']},
-    install_requires=['setuptools', 'gym', 'numpy', 'psutil'],
+    install_requires=['setuptools', 'gym', 'numpy'],
     zip_safe=True,
     author='Poh Zhi-Ee',
     author_email='zhiee.poh@httechnology.com',

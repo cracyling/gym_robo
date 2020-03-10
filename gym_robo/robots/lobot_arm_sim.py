@@ -16,7 +16,7 @@ class LobotArmSim:
         config.sim_step_size = 0.001
         config.real_time_factor = 0.0
         self.impl = Arm.LobotArm(config)
-        self.impl.SetVerbosity(4)
+        # self.impl.SetVerbosity(4)
         if use_gui:
             self.impl.Gui()
             self.impl.Run(100)
@@ -36,7 +36,7 @@ class LobotArmSim:
 
     def reset(self) -> None:
         self.impl.Reset()
-        self.impl.Run(100)
+        # self.impl.Run(100)
 
     def get_action_space(self):
         return Box(numpy.array([-2.356, -1.570796, -1.570796]), numpy.array([2.356, 0.5, 1.570796]))
