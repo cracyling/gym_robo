@@ -6,13 +6,13 @@ from gym_robo.envs import LobotArmEnv
 from gym.spaces import Box
 from typing import Type
 
+
 def main(args=None):
-    env: LobotArmEnv = gym.make('LobotArmContinuous-v0',
-                                robot_kwargs={'use_gui': False})
+    env: LobotArmEnv = gym.make('LobotArmContinuous-v0')
     env.reset()
     action_space: Type[Box] = env.action_space
     done = False
-    for _ in range(50):
+    for _ in range(10):
         print("-------------Starting----------------")
         count = 0
         while not done:

@@ -1,5 +1,5 @@
 import LobotArmPy as Arm
-from LobotArmPy import LobotArmObservation, LobotArmConfig
+from LobotArmPy import LobotArmObservation
 
 from gym.spaces import Box
 
@@ -11,11 +11,8 @@ class LobotArmSim:
 
     '''-------------PUBLIC METHODS START-------------'''
 
-    def __init__(self, use_gui=False):
-        config = LobotArmConfig()
-        config.sim_step_size = 0.001
-        config.real_time_factor = 0.0
-        self.impl = Arm.LobotArm(config)
+    def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, model_path=""):
+        self.impl = Arm.LobotArm(rtf=rtf, step_size=sim_step_size, model_path=model_path)
         # self.impl.SetVerbosity(4)
         if use_gui:
             self.impl.Gui()
