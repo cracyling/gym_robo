@@ -23,10 +23,10 @@ class ArmState(Enum):
 
 class LobotArmRandomGoal:
     def __init__(self, robot, max_time_step: int = 500, accepted_dist_to_bounds=0.001,
-                 accepted_error=0.001, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, contact_penalty=0.0, timeout_penalty=0.0,
+                 accepted_error=0.001, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, contact_penalty=0.0,
                  episodes_per_goal=1, goal_buffer_size=20, goal_from_buffer_prob=0.0, num_adjacent_goals=0, is_validation=False,
-                 random_goal_seed=None, random_goal_file=None, normalise_reward=False, continuous_run=False, reward_noise_mu=None,
-                 reward_noise_sigma=None, reward_noise_decay=None, exp_rew_scaling=None):
+                 random_goal_seed=None, random_goal_file=None, normalise_reward=False, continuous_run=False, reward_noise_mu=None, reward_noise_sigma=None,
+                 reward_noise_decay=None, exp_rew_scaling=None):
         self.robot = robot
         self._max_time_step = max_time_step
         self.accepted_dist_to_bounds = accepted_dist_to_bounds
@@ -34,7 +34,6 @@ class LobotArmRandomGoal:
         self.reach_target_bonus_reward = reach_target_bonus_reward
         self.reach_bounds_penalty = reach_bounds_penalty
         self.contact_penalty = contact_penalty
-        self.timeout_penalty = timeout_penalty
         self.episodes_per_goal = episodes_per_goal
         self.goal_buffer_size = goal_buffer_size
         self.goal_from_buffer_prob = goal_from_buffer_prob
@@ -56,34 +55,38 @@ class LobotArmRandomGoal:
         print('reach_target_bonus_reward: %8.7f # Bonus reward upon reaching target' % self.reach_target_bonus_reward)
         print('reach_bounds_penalty: %8.7f      # Reward penalty when reaching joint limit' % self.reach_bounds_penalty)
         print('contact_penalty: %8.7f           # Reward penalty for collision' % self.contact_penalty)
-        print('timeout_penalty: %8.7f           # Reward penalty for collision' % self.timeout_penalty)
         print('episodes_per_goal: %8d           # Number of episodes before generating another random goal' % self.episodes_per_goal)
         print('goal_buffer_size: %8d            # Number goals to store in buffer to be reused later' % self.goal_buffer_size)
-        print('goal_from_buffer_prob: %8.7f      # Probability of selecting a random goal from the goal buffer, value between 0 and 1' % self.goal_from_buffer_prob)
+        print(
+            'goal_from_buffer_prob: %8.7f      # Probability of selecting a random goal from the goal buffer, value between 0 and 1' % self.goal_from_buffer_prob)
         print('num_adjacent_goals: %8d          # Number of nearby goals to be generated for each randomly generated goal ' % self.num_adjacent_goals)
         print(f'random_goal_seed: {str(self.random_goal_seed):8}            # Seed used to generate the random goals')
         print(f'random_goal_file: {self.random_goal_file}       # Path to the numpy save file containing the random goals')
-        print('is_validation: %8r               # Whether this is a validation run, if true will print which points failed and how many reached' % self.is_validation)
-        print('normalise_reward: %8r            # Perform reward normalisation, this happens before reward bonus and penalties' % self.normalise_reward)
+        print(
+            'is_validation: %8r               # Whether this is a validation run, if true will print which points failed and how many reached' % self.is_validation)
+        print(
+            'normalise_reward: %8r            # Perform reward normalisation, this happens before reward bonus and penalties' % self.normalise_reward)
         print('continuous_run: %8r              # Continuously run the simulation, even after it reaches the destination' % self.continuous_run)
         print(f'reward_noise_mu: {self.reward_noise_mu}            # Reward noise mean (reward noise follows gaussian distribution)')
         print(f'reward_noise_sigma: {self.reward_noise_sigma}         # Reward noise standard deviation, recommended 0.5')
-        print(f'reward_noise_decay: {self.reward_noise_decay}            # Constant for exponential reward noise decay (recommended 0.31073, decays to 0.002 in 20 steps)')
-        print(f'exp_rew_scaling: {self.exp_rew_scaling}            # Constant for exponential reward scaling (None by default, recommended 5.0, cumulative exp_reward = 29.48)')
+        print(
+            f'reward_noise_decay: {self.reward_noise_decay}            # Constant for exponential reward noise decay (recommended 0.31073, decays to 0.002 in 20 steps)')
+        print(
+            f'exp_rew_scaling: {self.exp_rew_scaling}            # Constant for exponential reward scaling (None by default, recommended 5.0, cumulative exp_reward = 29.48)')
         print(f'-------------------------------------------------------------------------------------')
 
         assert self.accepted_dist_to_bounds >= 0.0, 'Allowable distance to joint limits should be positive'
         assert self.accepted_error >= 0.0, 'Accepted error to end coordinates should be positive'
         assert self.reach_target_bonus_reward >= 0.0, 'Reach target bonus reward should be positive'
         assert self.contact_penalty >= 0.0, 'Contact penalty should be positive'
-        assert self.timeout_penalty >= 0.0, 'Timeout penalty should be positive'
         assert self.reach_bounds_penalty >= 0.0, 'Reach bounds penalty should be positive'
         assert isinstance(self.episodes_per_goal, int), f'Episodes per goal should be an integer, current type: {type(self.episodes_per_goal)}'
         assert self.episodes_per_goal >= 1, 'Episodes per goal be greather than or equal to 1, i.e. episodes_per_goal >= 1'
         assert isinstance(self.goal_buffer_size, int), f'Goal buffer size should be an integer, current type: {type(self.goal_buffer_size)}'
         assert self.goal_buffer_size > 0, 'Goal buffer size should be greather than or equal to 1, i.e. episodes_per_goal >= 1'
         assert 0 <= self.goal_from_buffer_prob <= 1, 'Probability of selecting goal from buffer should be between 0 and 1'
-        assert isinstance(self.num_adjacent_goals, int), f'Number of adjacent goals should be an integer, current type: {type(self.num_adjacent_goals)}'
+        assert isinstance(self.num_adjacent_goals,
+                          int), f'Number of adjacent goals should be an integer, current type: {type(self.num_adjacent_goals)}'
         assert self.num_adjacent_goals >= 0, f'Number of adjacent goals should be positive, current value: {self.num_adjacent_goals}'
         if self.random_goal_seed is not None:
             assert isinstance(self.random_goal_seed, int), f'Random goal seed should be an integer, current type: {type(self.random_goal_seed)}'
@@ -93,7 +96,8 @@ class LobotArmRandomGoal:
             assert self.reward_noise_mu is not None and self.reward_noise_sigma is not None
             assert isinstance(self.reward_noise_mu, float) and isinstance(self.reward_noise_sigma, float)
         if exp_rew_scaling is not None:
-            assert isinstance(self.exp_rew_scaling, float), f'Exponential reward scaling factor should be a float, current type: {type(self.exp_rew_scaling)}'
+            assert isinstance(self.exp_rew_scaling,
+                              float), f'Exponential reward scaling factor should be a float, current type: {type(self.exp_rew_scaling)}'
 
         self._max_time_step = max_time_step
         lobot_desc_share_path = get_package_share_directory('gym_robo_descriptions')
@@ -109,7 +113,8 @@ class LobotArmRandomGoal:
             # Spawn the target marker if it is gazebo
             print(f'Spawning to: {(target_x, target_y, target_z)}')
             robot.spawn_marker(target_x, target_y, target_z, 0.002, 1)
-        self.previous_coords = numpy.array([0.0, 0.0, 0.0])
+        self.previous_coords = None
+        self.initial_coords = None
         self.__reset_count: int = 0
         self.fail_points = []
         self.__reach_count: int = 0
@@ -176,7 +181,7 @@ class LobotArmRandomGoal:
         reward = self.__calc_dist_change(self.previous_coords, current_coords)
 
         # normalise rewards
-        mag_target = numpy.linalg.norm(self.target_coords)
+        mag_target = numpy.linalg.norm(self.initial_coords - self.target_coords)
         normalised_reward = reward / mag_target
 
         # Scale up normalised reward slightly such that the total reward is between 0 and 10 instead of between 0 and 1
@@ -241,10 +246,6 @@ class LobotArmRandomGoal:
         # Check for collision
         if arm_state == ArmState.Collision:
             reward -= self.contact_penalty
-
-        if arm_state == ArmState.Timeout:
-            reward -= self.timeout_penalty
-
         return reward, reward_info
 
     def reset(self):
@@ -253,6 +254,7 @@ class LobotArmRandomGoal:
         initial_joint_values = numpy.array([0.0, 0.0, 0.0])
         res = self._fk.calculate('world', 'grip_end_point', initial_joint_values)
         self.previous_coords = numpy.array([res.translation.x, res.translation.y, res.translation.z])
+        self.initial_coords = numpy.array([res.translation.x, res.translation.y, res.translation.z])
         self.__reset_count += 1
         if self.__reset_count % self.episodes_per_goal == 0:
             self.target_coords_ik, self.target_coords = self.__get_target_coords()
@@ -312,7 +314,13 @@ class LobotArmRandomGoal:
             # Now y scales from 0 to 1, and then we use y as the "normalised distance"
             y = 1 - dist  # Change the variable such that max reward is when dist is = 0, and reward = 0 when dist is 1
             if y < 0:
-                cum_neg_rew = -1 / scaling * (math.exp(scaling * -y) - 1)
+                # Linear in negative region, if y = -1 reward is -5, y = 0 reward is 0
+                if y < -8:
+                    cum_neg_rew = (y + 8) * 0.5 + (-40)
+                else:
+                    cum_neg_rew = y * 5
+
+                # cum_neg_rew = -1 / scaling * (math.exp(scaling * -y) - 1)
                 return cum_neg_rew
             else:
                 cum_positive_rew = 1 / scaling * (math.exp(scaling * y) - 1)
@@ -321,7 +329,7 @@ class LobotArmRandomGoal:
         # compute exponential scaling normalised reward
         # formula = integral(e^0.4x) from x_init to x_final, x is normalised distance from goal
         # total cumulative reward = 1/scaling * (e^0.4 x_final - 1)
-        mag_target = numpy.linalg.norm(self.target_coords)
+        mag_target = numpy.linalg.norm(self.initial_coords - self.target_coords)
         diff_abs_init_scaled = numpy.linalg.norm(coords_init - self.target_coords) / mag_target
         diff_abs_next_scaled = numpy.linalg.norm(coords_next - self.target_coords) / mag_target
 
@@ -329,7 +337,6 @@ class LobotArmRandomGoal:
         current_cum_rew = calc_cum_reward(diff_abs_next_scaled, self.exp_rew_scaling)
         cum_rew_change = current_cum_rew - prev_cum_rew
         return cum_rew_change
-
 
     def __get_coords(self, joint_states: numpy.ndarray) -> numpy.ndarray:
         if len(joint_states) != 3:

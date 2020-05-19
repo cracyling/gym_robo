@@ -2,6 +2,7 @@ from gym.envs.registration import register
 
 from gym_robo.tasks import LobotArmFixedGoal, LobotArmRandomGoal
 from gym_robo.robots import LobotArmSim
+from LobotArmPy import ControlMode
 
 register(
     id='LobotArmContinuous-v0',  # Continuous action space
@@ -69,6 +70,19 @@ register(
             }
             }
 )
+register(
+    id='LobotArmContinuousRel-v0', # Continuous, relative action space
+    entry_point='gym_robo.envs:LobotArmEnv',
+    kwargs={'task_cls': LobotArmRandomGoal,
+            'robot_cls': LobotArmSim,
+            'robot_kwargs': {
+                'use_gui': True,
+                'control_mode': ControlMode.Relative
+            }
+            }
+)
+
+
 register(
     id='LobotArmContinuousValidation-v0',
     entry_point='gym_robo.envs:LobotArmEnv',

@@ -1,5 +1,5 @@
 import LobotArmPy as Arm
-from LobotArmPy import LobotArmObservation
+from LobotArmPy import LobotArmObservation, ControlMode
 
 from gym.spaces import Box
 
@@ -11,8 +11,9 @@ class LobotArmSim:
 
     '''-------------PUBLIC METHODS START-------------'''
 
-    def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, model_path=""):
-        self.impl = Arm.LobotArm(rtf=rtf, step_size=sim_step_size, model_path=model_path)
+    def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, model_path="", control_mode=ControlMode.Absolute):
+        self.impl = Arm.LobotArm(rtf=rtf, step_size=sim_step_size, model_path=model_path, control_mode=control_mode)
+        self.control_mode = control_mode
         # self.impl.SetVerbosity(4)
         if use_gui:
             self.impl.Gui()
@@ -36,7 +37,11 @@ class LobotArmSim:
         # self.impl.Run(100)
 
     def get_action_space(self):
-        return Box(numpy.array([-2.356, -1.570796, -1.570796]), numpy.array([2.356, 0.5, 1.570796]))
+        if self.control_mode == ControlMode.Relative:
+            return Box(numpy.array([-1.0, -1.0, -1.0]), numpy.array([1.0,1.0,1.0]))
+        elif self.control_mode == ControlMode.Absolute:
+            return Box(numpy.array([-2.356, -1.570796, -1.570796]), numpy.array([2.356, 0.5, 1.570796]))
+
 
     def get_observations(self) -> LobotArmObservation:
         return self.impl.GetObservations()
