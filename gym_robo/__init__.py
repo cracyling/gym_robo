@@ -1,8 +1,7 @@
 from gym.envs.registration import register
 
-from gym_robo.tasks import LobotArmFixedGoal, LobotArmRandomGoal
-from gym_robo.robots import LobotArmSim
-from LobotArmPy import ControlMode
+from gym_robo.tasks import LobotArmFixedGoal, LobotArmRandomGoal, HyQTask1
+from gym_robo.robots import LobotArmSim, HyQSim
 
 register(
     id='LobotArmContinuous-v0',  # Continuous action space
@@ -77,7 +76,7 @@ register(
             'robot_cls': LobotArmSim,
             'robot_kwargs': {
                 'use_gui': True,
-                'control_mode': ControlMode.Relative
+                'control_mode': "Relative"
             }
             }
 )
@@ -146,6 +145,20 @@ register(
                 'num_adjacent_goals': 0,
                 'random_goal_seed': 10,
                 'is_validation': True
+            }
+            }
+)
+
+
+
+register(
+    id='HyQ-v0',  # Continuous action space
+    entry_point='gym_robo.envs:HyQEnv',
+    kwargs={'task_cls': HyQTask1,
+            'robot_cls': HyQSim,
+            'robot_kwargs': {
+                'use_gui': True,
+                'rtf': 1.0
             }
             }
 )

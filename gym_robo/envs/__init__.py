@@ -1,1 +1,2 @@
-from gym_robo.envs.lobot_arm_env import LobotArmEnv
+from .lobot_arm_env import LobotArmEnv
+from .hyq_env import HyQEnv

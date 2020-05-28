@@ -20,10 +20,10 @@ from typing import Sequence
 import sqlite3
 from sqlite3 import Error
 import numpy as np
-import io
+from typing import Union
 import json
-import time
 from gym_robo.tasks.lobot_arm import ArmState
+from gym_robo.tasks.hyq import HyQState
 
 
 def adapt_np_array(arr: np.ndarray):
@@ -34,13 +34,18 @@ def convert_np_array(text):
     return np.array(json.loads(text))
 
 
-def adapt_arm_state(state: ArmState):
+def adapt_state(state: Union[ArmState, HyQState]):
     return str(state.name)
 
 
-def convert_arm_state(state):
+def convert_state(state):
     key = state.decode('utf-8')
-    return ArmState[key]
+    if isinstance(state, ArmState):
+        return ArmState[key]
+    elif isinstance(state, HyQState):
+        return HyQState[key]
+    else:
+        return "UnknownType"
 
 
 class Logger:
@@ -64,8 +69,9 @@ class Logger:
                 self.has_table = True
         sqlite3.register_adapter(np.ndarray, adapt_np_array)
         sqlite3.register_converter("np_array", convert_np_array)
-        sqlite3.register_adapter(ArmState, adapt_arm_state)
-        sqlite3.register_converter("armstate", convert_arm_state)
+        sqlite3.register_adapter(ArmState, adapt_state)
+        sqlite3.register_adapter(HyQState, adapt_state)
+        sqlite3.register_converter("state", convert_state)
 
         self.store_count = 0
         self.buffer_size = 20000
@@ -90,13 +96,12 @@ class Logger:
                                         id integer PRIMARY KEY,
                                         episode_num integer NOT NULL,
                                         step_num integer NOT NULL,
-                                        arm_state armstate NOT NULL,
+                                        state state NOT NULL,
                                         dist_to_goal real NOT NULL,
                                         target_coords np_array NOT NULL,
                                         current_coords np_array NOT NULL,
                                         joint_pos np_array NOT NULL,
                                         joint_vel np_array NOT NULL,
-                                        rew_noise real NOT NULL,
                                         reward real NOT NULL,
                                         normalised_reward real NOT NULL,
                                         exp_reward real NOT NULL,
@@ -104,7 +109,6 @@ class Logger:
                                         cum_normalised_reward real NOT NULL,
                                         cum_exp_reward real NOT NULL,
                                         cum_reward real NOT NULL,
-                                        cum_rew_noise real NOT NULL,
                                         action np_array NOT NULL,
                                         date_time text NOT NULL
                                     );""" % self.table_name
@@ -118,24 +122,23 @@ class Logger:
     def __del__(self):
         self.__store_buffer_into_db()
 
-    def store(self, episode_num: int, step_num: int, arm_state: ArmState, dist_to_goal: float, target_coords: np.ndarray, current_coords: np.ndarray,
-              joint_pos: np.ndarray, joint_vel: np.ndarray, rew_noise: float,
+    def store(self, episode_num: int, step_num: int, state: Union[ArmState, HyQState], dist_to_goal: float, target_coords: np.ndarray, current_coords: np.ndarray,
+              joint_pos: np.ndarray, joint_vel: np.ndarray,
               reward: float, normalised_reward: float, exp_reward: float, cum_unshaped_reward: float, cum_normalised_reward: float,
-              cum_exp_reward:float, cum_reward: float, cum_rew_noise: float,
-              action: np.ndarray):
+              cum_exp_reward: float, cum_reward: float,
+              action: np.ndarray, **kwargs):
         # if not self.has_table:
         #     print('No table created. Not logging')
         #     return
         assert self.has_table
         assert isinstance(step_num, int)
         assert isinstance(episode_num, int)
-        assert isinstance(arm_state, ArmState)
+        assert isinstance(state, (ArmState, HyQState))
         assert isinstance(dist_to_goal, float)
         assert isinstance(target_coords, np.ndarray)
         assert isinstance(current_coords, np.ndarray)
         assert isinstance(joint_pos, np.ndarray)
         assert isinstance(joint_vel, np.ndarray)
-        assert isinstance(rew_noise, float)
         assert isinstance(reward, float)
         assert isinstance(normalised_reward, float)
         assert isinstance(exp_reward, float)
@@ -143,14 +146,13 @@ class Logger:
         assert isinstance(cum_normalised_reward, float)
         assert isinstance(cum_exp_reward, float)
         assert isinstance(cum_reward, float)
-        assert isinstance(cum_rew_noise, float)
         assert isinstance(episode_num, int)
         assert isinstance(action, np.ndarray)
 
         # TODO: Store datetime into this tuple and store it into the database instead of letting the database generate datetime
-        data_tup = (episode_num, step_num, arm_state, dist_to_goal, target_coords, current_coords, joint_pos, joint_vel,
-                    rew_noise, reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,
-                    cum_reward, cum_rew_noise, action)
+        data_tup = (episode_num, step_num, state, dist_to_goal, target_coords, current_coords, joint_pos, joint_vel,
+                    reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,
+                    cum_reward, action)
         self.buffer.append(data_tup)
         if len(self.buffer) >= self.buffer_size:
             self.__store_buffer_into_db()
@@ -175,10 +177,10 @@ class Logger:
     def __store_buffer_into_db(self):
         cur = self.conn.cursor()
         for data in self.buffer:
-            cur.execute(f"insert into {self.table_name} (episode_num, step_num, arm_state, dist_to_goal, target_coords,"
+            cur.execute(f"insert into {self.table_name} (episode_num, step_num, state, dist_to_goal, target_coords,"
                         f"current_coords, joint_pos, joint_vel,"
-                        f"rew_noise, reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,"
-                        f"cum_reward, cum_rew_noise, action, date_time) "
-                        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now', 'localtime'))", data)
+                        f"reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,"
+                        f"cum_reward, action, date_time) "
+                        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now', 'localtime'))", data)
         self.conn.commit()
         self.buffer = []
