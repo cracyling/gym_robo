@@ -8,7 +8,7 @@ from gym.spaces import Box
 import numpy
 
 from gym_robo.robots import HyQSim
-from gym_robo.utils import Logger, hyq_obs_to_numpy
+from gym_robo.utils import HyQLogger, hyq_obs_to_numpy
 # from gym_robo.tasks import
 
 from HyQPy import HyQObservation
@@ -35,7 +35,7 @@ class HyQEnv(gym.Env):
         self.__last_done_info = None
         now = datetime.now()
         table_name = f'run_{now.strftime("%d_%m_%Y__%H_%M_%S")}'
-        self.__logger = Logger(table_name)
+        self.__logger = HyQLogger(table_name, "hyq_log.db")
         # self.reset()
 
     def step(self, action: numpy.ndarray) -> Tuple[numpy.ndarray, float, bool, dict]:
@@ -64,6 +64,8 @@ class HyQEnv(gym.Env):
                       'reward': reward,
                       'normalised_reward': reward_info['normalised_reward'],
                       'exp_reward': reward_info['exp_reward'],
+                      'orientation_penalty_factor': reward_info['orientation_penalty_factor'],
+                      'height_penalty_factor': reward_info['height_penalty_factor'],
                       'cum_unshaped_reward': self.__cumulated_unshaped_reward,
                       'cum_normalised_reward': self.__cumulated_norm_reward,
                       'cum_exp_reward': self.__cumulated_exp_reward,

@@ -20,9 +20,27 @@ class HyQState(Enum):
     Undefined = auto()
 
 
+def quaternion_to_euler(w, x, y, z) -> Tuple[float, float, float]:
+    sinr_cosp = 2 * (w * x + y * z)
+    cosr_cosp = 1 - 2 * (x * x + y * y)
+    roll = math.atan2(sinr_cosp, cosr_cosp)
+
+    sinp = 2 * (w * y - z * x)
+    if abs(sinp) >= 1:
+        pitch = math.copysign(numpy.pi / 2, sinp)
+    else:
+        pitch = math.asin(sinp)
+
+    siny_cosp = 2 * (w * z + x * y)
+    cosy_cosp = 1 - 2 * (y * y + z * z)
+    yaw = math.atan2(siny_cosp, cosy_cosp)
+
+    return roll, pitch, yaw
+
+
 class HyQTask1:
-    def __init__(self, robot, max_time_step: int = 500, accepted_dist_to_bounds=0.001,
-                 accepted_error=0.001, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, fall_penalty=0.0,
+    def __init__(self, robot, max_time_step: int = 1000, accepted_dist_to_bounds=0.01,
+                 accepted_error=0.01, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, fall_penalty=0.0,
                  episodes_per_goal=1, goal_buffer_size=20, goal_from_buffer_prob=0.0, num_adjacent_goals=0, is_validation=False,
                  random_goal_seed=None, random_goal_file=None, normalise_reward=False, continuous_run=False, exp_rew_scaling=None):
         self.robot = robot
@@ -168,6 +186,10 @@ class HyQTask1:
 
         self.previous_coords = current_coords
 
+        # Scaling reward penalties
+        total_penalty_factor = self.__calc_rew_penalty_scale(obs.pose, reward_info)
+
+        reward *= total_penalty_factor
         # Reward shaping logic
 
         # Check if it has reached target destination
@@ -196,11 +218,10 @@ class HyQTask1:
         if self.__reset_count % self.episodes_per_goal == 0:
             self.target_coords = self.__get_target_coords()
             print(f'Moving to [{self.target_coords[0]:.6f}, {self.target_coords[1]:.6f}, {self.target_coords[2]:.6f}]')
+            self.robot.spawn_marker(self.target_coords[0], self.target_coords[1], self.target_coords[2], 0.2, 1)
 
     def __is_failed(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, HyQState]:
         info_dict = {'state': HyQState.Undefined}
-        if obs.trunk_contact:
-            return True, HyQState.Fallen
 
         # Check if time step exceeds limits, i.e. timed out
         # Time step starts from 0, that means if we only want to run 2 steps time_step will be 0,1 and we need to stop at 1
@@ -259,6 +280,41 @@ class HyQTask1:
         current_cum_rew = calc_cum_reward(diff_abs_next_scaled, self.exp_rew_scaling)
         cum_rew_change = current_cum_rew - prev_cum_rew
         return cum_rew_change
+
+    """
+    Calculates the reward penalties based on orientation and height of the robot
+
+    :param pose: The pose of the robot, expects a Pose object of HyQPy.Pose
+    :param reward_info: Dictionary of the reward info, since python accepts dictionaries by reference we just directly modify this
+    :returns: Total penalty scaling, a multiple of both the orientation and height penalty
+    """
+    @staticmethod
+    def __calc_rew_penalty_scale(pose, reward_info: Dict) -> float:
+        q = pose.rotation
+        [roll, pitch, yaw] = quaternion_to_euler(q.w, q.x, q.y, q.z)
+
+        # ----- Orientation penalty -----
+        # For orientation, we allow 2.5 degrees each side for allowance, then start penalising after
+        allowable_yaw_deg = 2.5
+        allowable_yaw_rad = allowable_yaw_deg * math.pi / 180
+        # Note: This logic doesn't work well when yaw is beyond 90 degrees, because roll and pitch will flip sign and yaw will still be less than 90
+        if abs(yaw) > allowable_yaw_rad:
+            orientation_penalty_factor = math.cos(yaw)
+        else:
+            orientation_penalty_factor = 1.0
+        reward_info['orientation_penalty_factor'] = orientation_penalty_factor
+
+        # ----- Height Penalty -----
+        # For height, we do not penalise for height between 0.42 and 0.47 (spawn height is 0.47 then dropped to 0.445 at steady state during ep start)
+        penalty_scale_height = 1.0
+        current_height = pose.position.z
+        if 0.42 < current_height < 0.47:
+            height_penalty_factor = 1.0
+        else:
+            height_diff = abs(0.445-current_height)
+            height_penalty_factor = math.exp(height_diff * -5)
+        reward_info['height_penalty_factor'] = height_penalty_factor
+        return orientation_penalty_factor * height_penalty_factor
 
     def __get_target_coords(self) -> numpy.ndarray:
         return numpy.array([5.0, 0.0, 0.5])
