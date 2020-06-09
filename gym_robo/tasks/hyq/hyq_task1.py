@@ -186,10 +186,6 @@ class HyQTask1:
 
         self.previous_coords = current_coords
 
-        # Scaling reward penalties
-        total_penalty_factor = self.__calc_rew_penalty_scale(obs.pose, reward_info)
-
-        reward *= total_penalty_factor
         # Reward shaping logic
 
         # Check if it has reached target destination
@@ -200,6 +196,10 @@ class HyQTask1:
                 self.target_coords = self.__get_target_coords()
                 print(f'Moving to [{self.target_coords[0]:.6f}, {self.target_coords[1]:.6f}, {self.target_coords[2]:.6f}]')
             reward += self.reach_target_bonus_reward
+
+        # Scaling reward penalties
+        total_penalty_factor = self.__calc_rew_penalty_scale(obs.pose, reward_info)
+        reward *= total_penalty_factor
 
         # Check if it has approached any joint limits
         if state == HyQState.ApproachJointLimits:
@@ -308,11 +308,11 @@ class HyQTask1:
         # For height, we do not penalise for height between 0.42 and 0.47 (spawn height is 0.47 then dropped to 0.445 at steady state during ep start)
         penalty_scale_height = 1.0
         current_height = pose.position.z
-        if 0.42 < current_height < 0.47:
+        if 0.52 < current_height < 0.72:
             height_penalty_factor = 1.0
         else:
-            height_diff = abs(0.445-current_height)
-            height_penalty_factor = math.exp(height_diff * -5)
+            height_diff = abs(0.62-current_height)
+            height_penalty_factor = math.exp(height_diff * -2)
         reward_info['height_penalty_factor'] = height_penalty_factor
         return orientation_penalty_factor * height_penalty_factor
 

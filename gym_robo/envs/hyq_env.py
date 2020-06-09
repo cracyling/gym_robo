@@ -23,6 +23,7 @@ class HyQEnv(gym.Env):
         if robot_kwargs is None:
             robot_kwargs = {}
         self.__robot: HyQSim = robot_cls(**robot_kwargs)
+        self.robot = self.__robot
         self.__task = task_cls(self.__robot, **task_kwargs)
         self.action_space = self.__robot.get_action_space()
         self.observation_space = self.__robot.get_observation_space()
