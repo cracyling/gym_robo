@@ -42,7 +42,7 @@ class HyQTask1:
     def __init__(self, robot, max_time_step: int = 1000, accepted_dist_to_bounds=0.01,
                  accepted_error=0.01, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, fall_penalty=0.0,
                  episodes_per_goal=1, goal_buffer_size=20, goal_from_buffer_prob=0.0, num_adjacent_goals=0, is_validation=False,
-                 random_goal_seed=None, random_goal_file=None, normalise_reward=False, continuous_run=False, exp_rew_scaling=None):
+                 random_goal_seed=None, random_goal_file=None, norm_rew_scaling=None, continuous_run=False, exp_rew_scaling=None):
         self.robot = robot
         self._max_time_step = max_time_step
         self.accepted_dist_to_bounds = accepted_dist_to_bounds
@@ -57,7 +57,7 @@ class HyQTask1:
         self.is_validation = is_validation
         self.random_goal_seed = random_goal_seed
         self.random_goal_file = random_goal_file
-        self.normalise_reward = normalise_reward
+        self.norm_rew_scaling = norm_rew_scaling
         self.continuous_run = continuous_run
         self.exp_rew_scaling = exp_rew_scaling
         print(f'-------------------------------Setting task parameters-------------------------------')
@@ -77,7 +77,7 @@ class HyQTask1:
         print(
             'is_validation: %8r               # Whether this is a validation run, if true will print which points failed and how many reached' % self.is_validation)
         print(
-            'normalise_reward: %8r            # Perform reward normalisation, this happens before reward bonus and penalties' % self.normalise_reward)
+            f'norm_rew_scaling: %{self.norm_rew_scaling}            # Constant for scaling the normalised reward, if set this will use normalised reward instead of base reward')
         print('continuous_run: %8r              # Continuously run the simulation, even after it reaches the destination' % self.continuous_run)
         print(
             f'exp_rew_scaling: {self.exp_rew_scaling}            # Constant for exponential reward scaling (None by default, recommended 5.0, cumulative exp_reward = 29.48)')
@@ -156,8 +156,11 @@ class HyQTask1:
         mag_target = numpy.linalg.norm(self.initial_coords - self.target_coords)
         normalised_reward = reward / mag_target
 
-        # Scale up normalised reward slightly such that the total reward is between 0 and 10 instead of between 0 and 1
-        normalised_reward *= 10
+        # Scale up normalised reward slightly such that the total reward is between 0 and 10 by default instead of between 0 and 1
+        if self.norm_rew_scaling is not None:
+            normalised_reward *= self.norm_rew_scaling
+        else:
+            normalised_reward *= 10
 
         # Scale up reward so that it is not so small if not normalised
         normal_scaled_reward = reward * 100
@@ -171,7 +174,7 @@ class HyQTask1:
                        'target_coords': self.target_coords,
                        'current_coords': current_coords}
 
-        if self.normalise_reward:
+        if self.norm_rew_scaling is not None:
             reward = normalised_reward
         else:
             reward = normal_scaled_reward
