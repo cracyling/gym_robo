@@ -299,22 +299,30 @@ class HyQTask1:
         allowable_yaw_rad = allowable_yaw_deg * math.pi / 180
         # Note: This logic doesn't work well when yaw is beyond 90 degrees, because roll and pitch will flip sign and yaw will still be less than 90
         if abs(yaw) > allowable_yaw_rad:
-            orientation_penalty_factor = math.cos(yaw)
+            yaw_penalty_factor = math.cos(yaw)
         else:
-            orientation_penalty_factor = 1.0
-        reward_info['orientation_penalty_factor'] = orientation_penalty_factor
-
+            yaw_penalty_factor = 1.0
+        reward_info['yaw_penalty_factor'] = yaw_penalty_factor
+        # Pitch penalty
+        allowable_pitch_deg = 5.0
+        allowable_pitch_rad = allowable_pitch_deg * math.pi / 180
+        # Note: This logic doesn't work well when yaw is beyond 90 degrees, because roll and pitch will flip sign and yaw will still be less than 90
+        if abs(pitch) > allowable_pitch_rad:
+            pitch_penalty_factor = math.cos(pitch)
+        else:
+            pitch_penalty_factor = 1.0
+        reward_info['pitch_penalty_factor'] = pitch_penalty_factor
         # ----- Height Penalty -----
         # For height, we do not penalise for height between 0.42 and 0.47 (spawn height is 0.47 then dropped to 0.445 at steady state during ep start)
         penalty_scale_height = 1.0
         current_height = pose.position.z
-        if 0.52 < current_height < 0.72:
+        if 0.45 < current_height < 0.75:
             height_penalty_factor = 1.0
         else:
-            height_diff = abs(0.62-current_height)
+            height_diff = abs(0.6-current_height)
             height_penalty_factor = math.exp(height_diff * -2)
         reward_info['height_penalty_factor'] = height_penalty_factor
-        return orientation_penalty_factor * height_penalty_factor
+        return pitch_penalty_factor * yaw_penalty_factor * height_penalty_factor
 
     def __get_target_coords(self) -> numpy.ndarray:
         return numpy.array([5.0, 0.0, 0.5])

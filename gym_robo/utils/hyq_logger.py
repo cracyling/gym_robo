@@ -79,7 +79,7 @@ class HyQLogger:
     def create_table(self, table_name) -> bool:
         # Currently the SQL is hardcoded, maybe can consider autogenerate if the table requirements change a lot
         # Few custom types are used,
-        # 1. ArmState (the enum)
+        # 1. HyQState (the enum)
         # 2. np.ndarray (for serialization and deserialization of numpy arrays into json text)
         c = self.conn.cursor()
 
@@ -104,7 +104,8 @@ class HyQLogger:
                                         reward real NOT NULL,
                                         normalised_reward real NOT NULL,
                                         exp_reward real NOT NULL,
-                                        orientation_penalty_factor real NOT NULL,
+                                        yaw_penalty_factor real NOT NULL,
+                                        pitch_penalty_factor real NOT NULL,
                                         height_penalty_factor real NOT NULL,
                                         cum_unshaped_reward real NOT NULL,
                                         cum_normalised_reward real NOT NULL,
@@ -124,7 +125,8 @@ class HyQLogger:
 
     def store(self, episode_num: int, step_num: int, state: Union[ArmState, HyQState], dist_to_goal: float, target_coords: np.ndarray, current_coords: np.ndarray,
               joint_pos: np.ndarray, joint_vel: np.ndarray,
-              reward: float, normalised_reward: float, exp_reward: float, orientation_penalty_factor: float, height_penalty_factor: float,
+              reward: float, normalised_reward: float, exp_reward: float,
+              yaw_penalty_factor: float, pitch_penalty_factor: float, height_penalty_factor: float,
               cum_unshaped_reward: float, cum_normalised_reward: float,
               cum_exp_reward: float, cum_reward: float,
               action: np.ndarray, **kwargs):
@@ -143,7 +145,8 @@ class HyQLogger:
         assert isinstance(reward, float)
         assert isinstance(normalised_reward, float)
         assert isinstance(exp_reward, float)
-        assert isinstance(orientation_penalty_factor, float)
+        assert isinstance(yaw_penalty_factor, float)
+        assert isinstance(pitch_penalty_factor, float)
         assert isinstance(height_penalty_factor, float)
         assert isinstance(cum_unshaped_reward, float)
         assert isinstance(cum_normalised_reward, float)
@@ -155,7 +158,7 @@ class HyQLogger:
         # TODO: Store datetime into this tuple and store it into the database instead of letting the database generate datetime
         data_tup = (episode_num, step_num, state, dist_to_goal, target_coords, current_coords, joint_pos, joint_vel,
                     reward, normalised_reward, exp_reward,
-                    orientation_penalty_factor, height_penalty_factor,
+                    yaw_penalty_factor, pitch_penalty_factor, height_penalty_factor,
                     cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,
                     cum_reward, action)
         self.buffer.append(data_tup)
@@ -184,9 +187,9 @@ class HyQLogger:
         for data in self.buffer:
             cur.execute(f"insert into {self.table_name} (episode_num, step_num, state, dist_to_goal, target_coords,"
                         f"current_coords, joint_pos, joint_vel,"
-                        f"reward, normalised_reward, exp_reward, orientation_penalty_factor, height_penalty_factor,"
+                        f"reward, normalised_reward, exp_reward, yaw_penalty_factor, pitch_penalty_factor, height_penalty_factor,"
                         f"cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,"
                         f"cum_reward, action) "
-                        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", data)
+                        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", data)
         self.conn.commit()
         self.buffer = []
