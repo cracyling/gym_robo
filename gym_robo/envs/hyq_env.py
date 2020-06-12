@@ -37,6 +37,8 @@ class HyQEnv(gym.Env):
         now = datetime.now()
         table_name = f'run_{now.strftime("%d_%m_%Y__%H_%M_%S")}'
         self.__logger = HyQLogger(table_name, "hyq_log.db")
+        obs: HyQObservation = self.__robot.get_observations()
+        self.initial_time_sec_combined = obs.sec + obs.nanosec / 1000000000
         # self.reset()
 
     def step(self, action: numpy.ndarray) -> Tuple[numpy.ndarray, float, bool, dict]:
@@ -77,7 +79,7 @@ class HyQEnv(gym.Env):
         self.__logger.store(**log_kwargs)
 
         # print(f"Reward for step {self.__step_num}: {reward}, \t cumulated reward: {self.__cumulated_episode_reward}")
-        return hyq_obs_to_numpy(obsDataStruct), reward, done, info
+        return hyq_obs_to_numpy(obsDataStruct, self.initial_time_sec_combined), reward, done, info
 
     def reset(self):
         if self.__last_done_info is not None:
@@ -96,7 +98,8 @@ class HyQEnv(gym.Env):
         self.__cumulated_norm_reward = 0
         self.__cumulated_unshaped_reward = 0
         self.__cumulated_exp_reward = 0
-        return hyq_obs_to_numpy(obs)
+        self.initial_time_sec_combined = obs.sec + obs.nanosec / 1000000000
+        return hyq_obs_to_numpy(obs, self.initial_time_sec_combined)
 
     def close(self):
         print('Closing ' + self.__class__.__name__ + ' environment.')

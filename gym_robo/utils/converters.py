@@ -3,8 +3,8 @@ import numpy
 from HyQPy import HyQObservation
 
 
-def hyq_obs_to_numpy(obs: HyQObservation):
-    values = numpy.zeros((39,))
+def hyq_obs_to_numpy(obs: HyQObservation, initial_time_sec: float):
+    values = numpy.zeros((40,))
     values[:12] = obs.joint_positions
     values[12:24] = obs.joint_velocities
     for pair in obs.contact_pairs:
@@ -31,5 +31,6 @@ def hyq_obs_to_numpy(obs: HyQObservation):
     values[36] = obs.pose.position.x
     values[37] = obs.pose.position.y
     values[38] = obs.pose.position.z
+    values[39] = obs.sec + obs.nanosec/1000000000 - initial_time_sec
 
     return values
