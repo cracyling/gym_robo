@@ -5,7 +5,14 @@ from gym_robo.envs import HyQEnv
 from gym.spaces import Box
 from typing import Type
 
-
+# joint_lower_limits = numpy.array([-1.22173, -0.872665, -2.44346,
+#                       -1.22173, -1.22173, 0.349066,
+#                       -1.22173, -0.872665, -2.44346,
+#                       -1.22173, -1.22173, 0.349066])
+# joint_upper_limits = numpy.array([0.436332, 1.22173, -0.349066,
+#                       0.436332, 0.872665, 2.44346,
+#                       0.436332, 1.22173, -0.349066,
+#                       0.436332, 0.872665, 2.44346])
 def main(args=None):
     env: HyQEnv = gym.make('HyQ-v0')
     action_space: Type[Box] = env.action_space

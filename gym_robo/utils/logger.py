@@ -54,8 +54,8 @@ class Logger:
         """ create a database connection to a SQLite database """
         self.conn = None
         try:
-            self.conn = sqlite3.connect(db_file, detect_types=sqlite3.PARSE_DECLTYPES)
-            print('Using sqlite3, version: {sqlite3.version}')
+            self.conn = sqlite3.connect(db_file, detect_types=sqlite3.PARSE_DECLTYPES, timeout=60.0)
+            print(f'Using sqlite3, version: {sqlite3.version}')
         except Error as e:
             print(e)
 
@@ -176,11 +176,13 @@ class Logger:
 
     def __store_buffer_into_db(self):
         cur = self.conn.cursor()
-        for data in self.buffer:
-            cur.execute(f"insert into {self.table_name} (episode_num, step_num, state, dist_to_goal, target_coords,"
-                        f"current_coords, joint_pos, joint_vel,"
-                        f"reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,"
-                        f"cum_reward, action, date_time) "
-                        f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now', 'localtime'))", data)
-        self.conn.commit()
-        self.buffer = []
+        try:
+            cur.executemany(f"insert into {self.table_name} (episode_num, step_num, state, dist_to_goal, target_coords,"
+                            f"current_coords, joint_pos, joint_vel,"
+                            f"reward, normalised_reward, exp_reward, cum_unshaped_reward, cum_normalised_reward, cum_exp_reward,"
+                            f"cum_reward, action, date_time) "
+                            f"VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now', 'localtime'))", self.buffer)
+            self.conn.commit()
+            self.buffer = []
+        except Error as e:
+            print(e)

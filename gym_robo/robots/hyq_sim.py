@@ -14,9 +14,9 @@ class HyQSim:
     '''-------------PUBLIC METHODS START-------------'''
 
     def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, control_mode="Relative"):
+        HyQPy.HyQ.SetVerbosity(4)
         self.impl = HyQPy.HyQ(rtf=rtf, step_size=sim_step_size, control_mode=control_mode)
         self.control_mode = control_mode
-        # HyQPy.HyQ.SetVerbosity(4)
         self.proc = None
         self.t = None
         if use_gui:
