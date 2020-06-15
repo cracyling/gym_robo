@@ -105,4 +105,5 @@ class HyQEnv(gym.Env):
         print('Closing ' + self.__class__.__name__ + ' environment.')
 
     def render(self, mode='human'):
+        self.robot.impl.Gui()
         pass

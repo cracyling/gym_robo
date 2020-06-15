@@ -157,7 +157,7 @@ register(
     kwargs={'task_cls': HyQTask1,
             'robot_cls': HyQSim,
             'robot_kwargs': {
-                'use_gui': True,
+                'use_gui': False,
                 'rtf': 1.0
             }
             }

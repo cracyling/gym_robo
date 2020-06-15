@@ -14,7 +14,7 @@ class HyQSim:
     '''-------------PUBLIC METHODS START-------------'''
 
     def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, control_mode="Relative"):
-        HyQPy.HyQ.SetVerbosity(4)
+        # HyQPy.HyQ.SetVerbosity(4)
         self.impl = HyQPy.HyQ(rtf=rtf, step_size=sim_step_size, control_mode=control_mode)
         self.control_mode = control_mode
         self.proc = None
@@ -22,32 +22,6 @@ class HyQSim:
         if use_gui:
             self.impl.Gui()
             time.sleep(2)
-
-    def gui(self):
-        def output_reader(proc):
-            for line in iter(proc.stdout.readline, b''):
-                print('GUI output: {0}'.format(line.decode('utf-8')), end='')
-
-        self.proc = subprocess.Popen(['ign', 'gazebo', '-g'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-
-        self.t = threading.Thread(target=output_reader, args=(self.proc,))
-        self.t.start()
-
-    def close_gui(self):
-        if self.proc is not None:
-            self.proc.terminate()
-            try:
-                self.proc.wait(timeout=0.2)
-                print('== subprocess exited with code =', self.proc.returncode)
-            except subprocess.TimeoutExpired:
-                print('subprocess did not terminate in time')
-            finally:
-                self.proc = None
-        if self.t is not None:
-            self.t.join()
-            self.t = None
 
     def set_action(self, action: numpy.ndarray) -> None:
         """
