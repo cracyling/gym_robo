@@ -1,7 +1,6 @@
 import random
 from collections import deque
 from typing import Dict, Tuple
-from enum import Enum, auto
 import numpy
 from gym_robo.robots import HyQSim
 from gym.spaces import Box
@@ -9,15 +8,7 @@ import os
 import math
 from HyQPy import HyQObservation, Pose
 import pickle
-
-
-class HyQState(Enum):
-    Reached = auto()
-    InProgress = auto()
-    ApproachJointLimits = auto()
-    Fallen = auto()
-    Timeout = auto()
-    Undefined = auto()
+from .common import HyQState
 
 
 def quaternion_to_euler(w, x, y, z) -> Tuple[float, float, float]:

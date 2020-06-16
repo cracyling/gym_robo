@@ -9,15 +9,8 @@ import os
 import math
 from HyQPy import HyQObservation, Pose
 import pickle
+from .common import HyQState
 
-
-class HyQState(Enum):
-    Reached = auto()
-    InProgress = auto()
-    ApproachJointLimits = auto()
-    Fallen = auto()
-    Timeout = auto()
-    Undefined = auto()
 
 
 def quaternion_to_euler(w, x, y, z) -> Tuple[float, float, float]:
