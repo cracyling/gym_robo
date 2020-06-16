@@ -1,1 +1,1 @@
-from .hyq_task1 import HyQState
+from .common import HyQState

@@ -1,6 +1,7 @@
 import random
 from collections import deque
 from typing import Dict, Tuple
+from enum import Enum, auto
 import numpy
 from gym_robo.robots import HyQSim
 from gym.spaces import Box
@@ -9,6 +10,7 @@ import math
 from HyQPy import HyQObservation, Pose
 import pickle
 from .common import HyQState
+
 
 
 def quaternion_to_euler(w, x, y, z) -> Tuple[float, float, float]:
@@ -29,11 +31,11 @@ def quaternion_to_euler(w, x, y, z) -> Tuple[float, float, float]:
     return roll, pitch, yaw
 
 
-class HyQTask1:
+class HyQTask2:
     def __init__(self, robot, max_time_step: int = 1000, accepted_dist_to_bounds=0.01,
                  accepted_error=0.01, reach_target_bonus_reward=0.0, reach_bounds_penalty=0.0, fall_penalty=0.0,
                  episodes_per_goal=1, goal_buffer_size=20, goal_from_buffer_prob=0.0, num_adjacent_goals=0, is_validation=False,
-                 random_goal_seed=None, random_goal_file=None, norm_rew_scaling=None, continuous_run=False, exp_rew_scaling=None):
+                 random_goal_seed=None, random_goal_file=None, norm_rew_scaling=None, continuous_run=False, exp_rew_scaling=None, cycle_len=100):
         self.robot = robot
         self._max_time_step = max_time_step
         self.accepted_dist_to_bounds = accepted_dist_to_bounds
@@ -51,6 +53,7 @@ class HyQTask1:
         self.norm_rew_scaling = norm_rew_scaling
         self.continuous_run = continuous_run
         self.exp_rew_scaling = exp_rew_scaling
+        self.cycle_len = cycle_len
         print(f'-------------------------------Setting task parameters-------------------------------')
         print('max_time_step: %8d               # Maximum time step before stopping the episode' % self._max_time_step)
         print('accepted_dist_to_bounds: %8.7f    # Allowable distance to joint limits (radians)' % self.accepted_dist_to_bounds)
@@ -72,6 +75,8 @@ class HyQTask1:
         print('continuous_run: %8r              # Continuously run the simulation, even after it reaches the destination' % self.continuous_run)
         print(
             f'exp_rew_scaling: {self.exp_rew_scaling}            # Constant for exponential reward scaling (None by default, recommended 5.0, cumulative exp_reward = 29.48)')
+        print(
+            f'cycle_len: {self.cycle_len}            # Constant for exponential reward scaling (None by default, recommended 5.0, cumulative exp_reward = 29.48)')
         print(f'-------------------------------------------------------------------------------------')
 
         assert self.accepted_dist_to_bounds >= 0.0, 'Allowable distance to joint limits should be positive'
@@ -106,6 +111,7 @@ class HyQTask1:
 
         self.__reset_count: int = 0
         self.__reach_count: int = 0
+        self.step: int = 0
 
     def is_done(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, Dict]:
         failed, state = self.__is_failed(obs, observation_space, time_step)
@@ -122,44 +128,51 @@ class HyQTask1:
             if abs(self.target_coords[i] - current_coords[i]) > self.accepted_error:
                 info_dict['state'] = HyQState.InProgress
                 return False, info_dict
-        # If all coordinates within acceptance range AND time step within limits, we are done
-        info_dict['state'] = HyQState.Reached
-        info_dict['step_count'] = time_step
-        print(f'Reached destination, target coords: {self.target_coords}, current coords: {current_coords}, time step: {time_step}')
-        self.__reach_count += 1
-        if self.is_validation:
-            print(f'Reach count: {self.__reach_count}')
-
+        
         if self.continuous_run:
             return False, info_dict
         else:
             return True, info_dict
 
-    def compute_reward(self, obs: HyQObservation, state: HyQState) -> Tuple[float, Dict]:
-
+    def compute_reward(self, obs: HyQObservation, state: HyQState, time_step: int = -1) -> Tuple[float, Dict]:
+        #Gaits graph reward shaping
+        reward = 0.0
+        if time_step % self.cycle_len == 0:
+            self.step = 0
+        if 0 <= self.step < 10 or 50 <= self.step < 60:
+            if ('lh_foot_collision_1', 'ground_collision') and ('lf_foot_collision_1', 'ground_collision') and ('rf_foot_collision_1', 'ground_collision') and ('rh_foot_collision_1', 'ground_collision') in obs.contact_pairs:
+                reward +=2
+            else:
+                reward -=1
+        if 10 <= self.step < 50:
+            if (('lh_foot_collision_1', 'ground_collision') and ('rf_foot_collision_1', 'ground_collision') in obs.contact_pairs) and (('lf_foot_collision_1', 'ground_collision') and ('rh_foot_collision_1', 'ground_collision') not in obs.contact_pairs):
+                reward +=2
+            else:
+                reward -=1
+        if 60 <= self.step < 100:
+            if (('rh_foot_collision_1', 'ground_collision') and ('lf_foot_collision_1', 'ground_collision') in obs.contact_pairs) and (('rf_foot_collision_1', 'ground_collision') and ('lh_foot_collision_1', 'ground_collision') not in obs.contact_pairs):
+                reward +=2
+            else:
+                reward -=1
+        self.step +=1
+        
         current_coords = numpy.array([obs.pose.position.x, obs.pose.position.y, obs.pose.position.z])
 
         assert state != HyQState.Undefined, f'State cannot be undefined, please check logic'
 
-        reward = self.__calc_dist_change(self.previous_coords, current_coords)
+        reward1 = self.__calc_dist_change(self.previous_coords, current_coords)
 
-        # normalise rewards
-        mag_target = numpy.linalg.norm(self.initial_coords - self.target_coords)
-        normalised_reward = reward / mag_target
-
-        # Scale up normalised reward slightly such that the total reward is between 0 and 10 by default instead of between 0 and 1
-        if self.norm_rew_scaling is not None:
-            normalised_reward *= self.norm_rew_scaling
-        else:
-            normalised_reward *= 10
-
+        if reward1 > 0:
+            reward1 = 0
         # Scale up reward so that it is not so small if not normalised
-        normal_scaled_reward = reward * 100
+        normal_scaled_reward = reward1 * 100
+
+        reward = reward + normal_scaled_reward
 
         # Calculate current distance to goal (for information purposes only)
         dist = numpy.linalg.norm(current_coords - self.target_coords)
 
-        reward_info = {'normalised_reward': normalised_reward,
+        reward_info = {'normalised_reward': reward,
                        'normal_reward': normal_scaled_reward,
                        'distance_to_goal': dist,
                        'target_coords': self.target_coords,
@@ -168,8 +181,7 @@ class HyQTask1:
         if self.norm_rew_scaling is not None:
             reward = normalised_reward
         else:
-            reward = normal_scaled_reward
-
+            reward = reward
         # Calculate exponential reward component
         if self.exp_rew_scaling is not None:
             exp_reward = self.__calc_exponential_reward(self.previous_coords, current_coords)
@@ -242,8 +254,10 @@ class HyQTask1:
         # Efficient euclidean distance calculation by numpy, most likely uses vector instructions
         diff_abs_init = numpy.linalg.norm(coords_init - self.target_coords)
         diff_abs_next = numpy.linalg.norm(coords_next - self.target_coords)
-
-        return diff_abs_init - diff_abs_next
+        if diff_abs_next > 0.10:
+            return diff_abs_init - diff_abs_next
+        else:
+            return 0.0
 
     def __calc_exponential_reward(self, coords_init: numpy.ndarray, coords_next: numpy.ndarray) -> float:
         def calc_cum_reward(dist: float, scaling=5.0):
@@ -319,4 +333,4 @@ class HyQTask1:
         return pitch_penalty_factor * yaw_penalty_factor * height_penalty_factor
 
     def __get_target_coords(self) -> numpy.ndarray:
-        return numpy.array([5.0, 0.0, 0.5])
+        return numpy.array([0.0, 0.0, 0.5])
