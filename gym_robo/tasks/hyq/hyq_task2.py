@@ -119,6 +119,7 @@ class HyQTask2:
             if self.is_validation:
                 print(f'Failed to reach {self.target_coords}')
             return True, info_dict
+        info_dict['state'] = HyQState.InProgress
         return False, info_dict
 
     def compute_reward(self, obs: HyQObservation, state: HyQState, time_step: int = -1) -> Tuple[float, Dict]:
