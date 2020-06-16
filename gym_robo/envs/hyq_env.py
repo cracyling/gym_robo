@@ -26,7 +26,7 @@ class HyQEnv(gym.Env):
         self.robot = self.__robot
         self.__task = task_cls(self.__robot, **task_kwargs)
         self.action_space = self.__robot.get_action_space()
-        self.observation_space = self.__robot.get_observation_space()
+        self.observation_space = self.__task.get_observation_space()
         self.__episode_num = 0
         self.__cumulated_episode_reward = 0
         self.__cumulated_norm_reward = 0
@@ -37,8 +37,6 @@ class HyQEnv(gym.Env):
         now = datetime.now()
         table_name = f'run_{now.strftime("%d_%m_%Y__%H_%M_%S")}'
         self.__logger = HyQLogger(table_name, "hyq_log.db")
-        obs: HyQObservation = self.__robot.get_observations()
-        self.initial_time_sec_combined = obs.sec + obs.nanosec / 1000000000
         # self.reset()
 
     def step(self, action: numpy.ndarray) -> Tuple[numpy.ndarray, float, bool, dict]:
@@ -46,7 +44,7 @@ class HyQEnv(gym.Env):
         obsDataStruct: HyQObservation = self.__robot.get_observations()
         done, done_info = self.__task.is_done(obsDataStruct, self.observation_space, self.__step_num)
         state = done_info['state']
-        reward, reward_info = self.__task.compute_reward(obsDataStruct, state)
+        reward, reward_info = self.__task.compute_reward(obsDataStruct, state, self.__step_num)
         info: dict = {**reward_info, **done_info}
         self.__cumulated_episode_reward += reward
         self.__cumulated_norm_reward += reward_info['normalised_reward']
@@ -77,9 +75,10 @@ class HyQEnv(gym.Env):
                       'action': action
                     }
         self.__logger.store(**log_kwargs)
+        obs = self.__task.get_observations(obsDataStruct, self.__step_num)
 
         # print(f"Reward for step {self.__step_num}: {reward}, \t cumulated reward: {self.__cumulated_episode_reward}")
-        return hyq_obs_to_numpy(obsDataStruct, self.initial_time_sec_combined), reward, done, info
+        return obs, reward, done, info
 
     def reset(self):
         if self.__last_done_info is not None:
@@ -98,8 +97,8 @@ class HyQEnv(gym.Env):
         self.__cumulated_norm_reward = 0
         self.__cumulated_unshaped_reward = 0
         self.__cumulated_exp_reward = 0
-        self.initial_time_sec_combined = obs.sec + obs.nanosec / 1000000000
-        return hyq_obs_to_numpy(obs, self.initial_time_sec_combined)
+
+        return self.__task.get_observations(obs, self.__step_num)
 
     def close(self):
         print('Closing ' + self.__class__.__name__ + ' environment.')

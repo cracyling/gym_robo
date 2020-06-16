@@ -1,13 +1,11 @@
-import random
 from collections import deque
 from typing import Dict, Tuple
 import numpy
-from gym_robo.robots import HyQSim
 from gym.spaces import Box
 import os
 import math
-from HyQPy import HyQObservation, Pose
-import pickle
+from HyQPy import HyQObservation
+from gym_robo.utils import hyq_obs_to_numpy
 from .common import HyQState
 
 
@@ -135,7 +133,7 @@ class HyQTask1:
         else:
             return True, info_dict
 
-    def compute_reward(self, obs: HyQObservation, state: HyQState) -> Tuple[float, Dict]:
+    def compute_reward(self, obs: HyQObservation, state: HyQState, *args) -> Tuple[float, Dict]:
 
         current_coords = numpy.array([obs.pose.position.x, obs.pose.position.y, obs.pose.position.z])
 
@@ -213,6 +211,13 @@ class HyQTask1:
             self.target_coords = self.__get_target_coords()
             print(f'Moving to [{self.target_coords[0]:.6f}, {self.target_coords[1]:.6f}, {self.target_coords[2]:.6f}]')
             self.robot.spawn_marker(self.target_coords[0], self.target_coords[1], self.target_coords[2], 0.2, 1)
+
+    @staticmethod
+    def get_observations(obs_data_struct: HyQObservation, *args):
+        return hyq_obs_to_numpy(obs_data_struct)
+
+    def get_observation_space(self):
+        return self.robot.get_observation_space()
 
     def __is_failed(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, HyQState]:
         info_dict = {'state': HyQState.Undefined}

@@ -1,14 +1,12 @@
-import random
 from collections import deque
 from typing import Dict, Tuple
-from enum import Enum, auto
 import numpy
-from gym_robo.robots import HyQSim
+import gym
 from gym.spaces import Box
 import os
 import math
-from HyQPy import HyQObservation, Pose
-import pickle
+from HyQPy import HyQObservation
+from gym_robo.utils import hyq_obs_to_numpy
 from .common import HyQState
 
 
@@ -121,18 +119,7 @@ class HyQTask2:
             if self.is_validation:
                 print(f'Failed to reach {self.target_coords}')
             return True, info_dict
-
-        current_coords = numpy.array([obs.pose.position.x, obs.pose.position.y, obs.pose.position.z])
-        # As long as any coordinate is out of acceptance range, we are not done
-        for i in range(3):
-            if abs(self.target_coords[i] - current_coords[i]) > self.accepted_error:
-                info_dict['state'] = HyQState.InProgress
-                return False, info_dict
-        
-        if self.continuous_run:
-            return False, info_dict
-        else:
-            return True, info_dict
+        return False, info_dict
 
     def compute_reward(self, obs: HyQObservation, state: HyQState, time_step: int = -1) -> Tuple[float, Dict]:
         #Gaits graph reward shaping
@@ -172,16 +159,12 @@ class HyQTask2:
         # Calculate current distance to goal (for information purposes only)
         dist = numpy.linalg.norm(current_coords - self.target_coords)
 
-        reward_info = {'normalised_reward': reward,
+        reward_info = {'normalised_reward': 0.0,
                        'normal_reward': normal_scaled_reward,
                        'distance_to_goal': dist,
                        'target_coords': self.target_coords,
                        'current_coords': current_coords}
 
-        if self.norm_rew_scaling is not None:
-            reward = normalised_reward
-        else:
-            reward = reward
         # Calculate exponential reward component
         if self.exp_rew_scaling is not None:
             exp_reward = self.__calc_exponential_reward(self.previous_coords, current_coords)
@@ -225,6 +208,16 @@ class HyQTask2:
             self.target_coords = self.__get_target_coords()
             print(f'Moving to [{self.target_coords[0]:.6f}, {self.target_coords[1]:.6f}, {self.target_coords[2]:.6f}]')
             self.robot.spawn_marker(self.target_coords[0], self.target_coords[1], self.target_coords[2], 0.2, 1)
+
+    def get_observations(self, obs_data_struct: HyQObservation, step_num: int):
+        np_obs = hyq_obs_to_numpy(obs_data_struct)
+        return numpy.append(np_obs, step_num % self.cycle_len)
+
+    def get_observation_space(self):
+        robot_obs_space: gym.spaces.Box = self.robot.get_observation_space()
+        new_low = numpy.append(robot_obs_space.low, 0.0)
+        new_high = numpy.append(robot_obs_space.low, 1.0)
+        return Box(new_low, new_high)
 
     def __is_failed(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, HyQState]:
         info_dict = {'state': HyQState.Undefined}
