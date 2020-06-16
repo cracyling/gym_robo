@@ -158,7 +158,8 @@ register(
             'robot_cls': HyQSim,
             'robot_kwargs': {
                 'use_gui': True,
-                'rtf': 6.0
+                'rtf': 1.0,
+                'control_mode': "Absolute"
             }
             }
 )
