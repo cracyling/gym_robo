@@ -212,7 +212,8 @@ class HyQTask2:
 
     def get_observations(self, obs_data_struct: HyQObservation, step_num: int):
         np_obs = hyq_obs_to_numpy(obs_data_struct)
-        return numpy.append(np_obs, step_num % self.cycle_len)
+        cycle_percent = (step_num % self.cycle_len)/ self.cycle_len
+        return numpy.append(np_obs, cycle_percent)
 
     def get_observation_space(self):
         robot_obs_space: gym.spaces.Box = self.robot.get_observation_space()
