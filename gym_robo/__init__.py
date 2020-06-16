@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
-from gym_robo.tasks import LobotArmFixedGoal, LobotArmRandomGoal, HyQTask1
+from gym_robo.tasks import LobotArmFixedGoal, LobotArmRandomGoal, HyQTask1, HyQTask2
 from gym_robo.robots import LobotArmSim, HyQSim
 
 register(
@@ -158,7 +158,31 @@ register(
             'robot_cls': HyQSim,
             'robot_kwargs': {
                 'use_gui': True,
-                'rtf': 1.0
+                'rtf': 6.0
+            }
+            }
+)
+
+register(
+    id='HyQ-v1',  # Continuous action space
+    entry_point='gym_robo.envs:HyQEnv',
+    kwargs={'task_cls': HyQTask2,
+            'robot_cls': HyQSim,
+            'robot_kwargs': {
+                'use_gui': True,
+                'rtf': 6.0
+            },
+            'task_kwargs': {
+                'max_time_step': 1000,
+                'accepted_dist_to_bounds': 0.002,
+                'accepted_error': 0.001,
+                'reach_target_bonus_reward': 0.0,
+                'reach_bounds_penalty': 3.0,
+                'fall_penalty': 3.0,
+                'norm_rew_scaling': None,
+                'exp_rew_scaling': None,
+                'cycle_len': 100,
+                'is_validation': False
             }
             }
 )
