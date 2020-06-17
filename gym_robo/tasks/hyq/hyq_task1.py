@@ -231,13 +231,25 @@ class HyQTask1:
         joint_angles = numpy.array(obs.joint_positions)
         upper_bound = observation_space.high[:12]  # First 12 values are the joint angles
         lower_bound = observation_space.low[:12]
-        min_dist_to_upper_bound = min(abs(joint_angles - upper_bound))
-        min_dist_to_lower_bound = min(abs(joint_angles - lower_bound))
+        min_dist_to_upper_bound = numpy.amin(abs(joint_angles - upper_bound))
+        min_dist_to_lower_bound = numpy.amin(abs(joint_angles - lower_bound))
         # self.accepted_dist_to_bounds is basically how close to the joint limits can the joints go,
         # i.e. limit of 1.57 with accepted dist of 0.1, then the joint can only go until 1.47
-        if min_dist_to_lower_bound < self.accepted_dist_to_bounds or min_dist_to_upper_bound < self.accepted_dist_to_bounds:
+        lower_limits_reached = min_dist_to_lower_bound < self.accepted_dist_to_bounds
+        upper_limits_reached = min_dist_to_upper_bound < self.accepted_dist_to_bounds
+        if lower_limits_reached or upper_limits_reached:
             info_dict['state'] = HyQState.ApproachJointLimits
+            if lower_limits_reached:
+                min_dist_lower_index = numpy.argmin(abs(joint_angles - lower_bound))
+                print(f"Joint with index {min_dist_lower_index} approached lower joint limits, current value: {joint_angles[min_dist_lower_index]}")
+            else:
+                min_dist_upper_index = numpy.argmin(abs(joint_angles - upper_bound))
+                print(f"Joint with index {min_dist_upper_index} approached upper joint limits, current value: {joint_angles[min_dist_upper_index]}")
+
             return True, HyQState.ApproachJointLimits
+
+        if obs.trunk_contact:
+            return True, HyQState.Fallen
 
         # Didn't fail
         return False, HyQState.Undefined
