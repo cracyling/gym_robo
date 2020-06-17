@@ -13,15 +13,18 @@ class HyQSim:
 
     '''-------------PUBLIC METHODS START-------------'''
 
-    def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, control_mode="Relative"):
+    def __init__(self, use_gui=False, rtf=1.0, sim_step_size=0.001, control_mode="Relative", initial_joint_pos=None, spawn_position=None,
+                 spawn_orientation=None, start_steps=None):
         # HyQPy.HyQ.SetVerbosity(4)
-        self.impl = HyQPy.HyQ(rtf=rtf, step_size=sim_step_size, control_mode=control_mode)
+        self.impl = HyQPy.HyQ(rtf=rtf, step_size=sim_step_size, control_mode=control_mode,
+                              initial_joint_pos=initial_joint_pos, spawn_position=spawn_position,
+                              spawn_orientation=spawn_orientation, start_steps=start_steps)
         self.control_mode = control_mode
         self.proc = None
         self.t = None
         if use_gui:
             self.impl.Gui()
-            time.sleep(2)
+            time.sleep(3.5)
 
     def set_action(self, action: numpy.ndarray) -> None:
         """
