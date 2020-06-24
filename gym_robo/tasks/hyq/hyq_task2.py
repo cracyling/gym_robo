@@ -129,7 +129,23 @@ class HyQTask2:
     def compute_reward(self, obs: HyQObservation, state: HyQState, time_step: int = -1) -> Tuple[float, Dict]:
         #Gaits graph reward shaping
         reward = 0.0
-        if time_step % self.cycle_len == 0:
+        self.gait_step=time_step%self.cycle_len #gait_step in % but at 100% timing might have a bit issues
+        num_contact = int(obs.lf_foot_contact) + int(obs.lh_foot_contact) +int(obs.rf_foot_contact)+int(obs.rh_foot_contact) 
+        reward_for_correct_contact = 2
+        if 0 <= self.gait_step <= 10 or 50 < self.gait_step <= 60: 
+            reward += reward_for_correct_contact*num_contact # reward -=1*(4-num_contact)
+        elif 10 < self.gait_step <= 50:        
+            if obs.lh_foot_contact: reward +=reward_for_correct_contact#else: reward -=1 
+            if obs.rf_foot_contact: reward +=reward_for_correct_contact#else: reward -=1 
+            if not obs.lf_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+            if not obs.rh_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+        elif 60 < self.gait_step <= 100:
+            if obs.lf_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+            if obs.rh_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+            if not obs.lh_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+            if not obs.rf_foot_contact: reward +=reward_for_correct_contact #else: reward -=1
+
+        '''if time_step % self.cycle_len == 0:
             self.step = 0
         if 0 <= self.step < 10 or 50 <= self.step < 60:
             if ('lh_foot_collision_1', 'ground_collision') and ('lf_foot_collision_1', 'ground_collision') and ('rf_foot_collision_1', 'ground_collision') and ('rh_foot_collision_1', 'ground_collision') in obs.contact_pairs:
@@ -146,7 +162,7 @@ class HyQTask2:
                 reward +=2
             else:
                 reward -=1
-        self.step +=1
+        self.step +=1'''
         
         current_coords = numpy.array([obs.pose.position.x, obs.pose.position.y, obs.pose.position.z])
 
