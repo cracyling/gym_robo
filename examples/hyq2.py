@@ -16,7 +16,7 @@ from typing import Type
 #                       0.436332, 1.22173, -0.349066,
 #                       0.436332, 0.872665, 2.44346])
 scriptDir = os.path.dirname(os.path.realpath(__file__))
-filePath = scriptDir + "/stable_traj3.json"
+filePath = scriptDir + "/symmetrical_gait.json"
 print(f"trying to open ref traj from {filePath}")
 with open(filePath, 'r') as fp:
     data = json.load(fp)

@@ -225,6 +225,9 @@ class HyQTask2:
         new_high = numpy.append(robot_obs_space.low, 1.0)
         return Box(new_low, new_high)
 
+    def set_action(self, action: numpy.ndarray) -> None:
+        self.robot.set_action(action)
+
     def __is_failed(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, HyQState]:
         info_dict = {'state': HyQState.Undefined}
 

@@ -202,6 +202,9 @@ class HyQTask1:
             reward -= self.fall_penalty
         return reward, reward_info
 
+    def set_action(self, action: numpy.ndarray) -> None:
+        self.robot.set_action(action)
+
     def reset(self):
         obs = self.robot.get_observations()
         self.initial_coords = numpy.array([obs.pose.position.x, obs.pose.position.y, obs.pose.position.z])

@@ -40,7 +40,7 @@ class HyQEnv(gym.Env):
         # self.reset()
 
     def step(self, action: numpy.ndarray) -> Tuple[numpy.ndarray, float, bool, dict]:
-        self.__robot.set_action(action)
+        self.__task.set_action(action)
         obsDataStruct: HyQObservation = self.__robot.get_observations()
         done, done_info = self.__task.is_done(obsDataStruct, self.observation_space, self.__step_num)
         state = done_info['state']
