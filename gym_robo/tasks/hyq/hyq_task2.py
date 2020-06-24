@@ -114,6 +114,10 @@ class HyQTask2:
     def is_done(self, obs: HyQObservation, observation_space: Box, time_step: int = -1) -> Tuple[bool, Dict]:
         failed, state = self.__is_failed(obs, observation_space, time_step)
         info_dict = {'state': state}
+        if state == HyQState.Fallen:
+            return False, info_dict
+        if state == HyQState.ApproachJointLimits:
+            return False, info_dict
         if failed:
             # self.fail_points.append((self.target_coords, self.target_coords_ik))
             if self.is_validation:
